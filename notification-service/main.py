@@ -14,9 +14,9 @@ Base = declarative_base()
 class Notificacion(Base):
     __tablename__ = "notificaciones"
     id = Column(Integer, primary_key=True)
-    evento = Column(String, nullable=False)
-    recurso_id = Column(Integer, nullable=True)
-    detalle = Column(String, nullable=True)
+    event = Column(String, nullable=False)
+    resource_id = Column(Integer, nullable=True)
+    user = Column(String, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
@@ -35,24 +35,24 @@ def envelope(data=None, message="OK", status="success"):
 
 
 class NotificacionInput(BaseModel):
-    evento: str
-    recurso_id: int | None = None
-    detalle: str | None = None
+    event: str
+    resource_id: int | None = None
+    user: str | None = None
 
 
 @app.post("/notifications")
 def crear_notificacion(n: NotificacionInput):
     db = Session()
-    nueva = Notificacion(evento=n.evento, recurso_id=n.recurso_id, detalle=n.detalle)
+    nueva = Notificacion(event=n.event, resource_id=n.resource_id, user=n.user)
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
     return envelope(
         {
             "id": nueva.id,
-            "evento": nueva.evento,
-            "recurso_id": nueva.recurso_id,
-            "detalle": nueva.detalle,
+            "event": nueva.event,
+            "resource_id": nueva.resource_id,
+            "user": nueva.user,
             "created_at": nueva.created_at.isoformat() + "Z"
         },
         "Notificacion registrada"
@@ -66,9 +66,9 @@ def listar_notificaciones():
     data = [
         {
             "id": x.id,
-            "evento": x.evento,
-            "recurso_id": x.recurso_id,
-            "detalle": x.detalle,
+            "event": x.event,
+            "resource_id": x.resource_id,
+            "user": x.user,
             "created_at": x.created_at.isoformat() + "Z"
         }
         for x in notificaciones
