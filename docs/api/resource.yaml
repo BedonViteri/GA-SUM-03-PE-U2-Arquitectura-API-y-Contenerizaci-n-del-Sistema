@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: Resource Service API
+  description: >
+    Contrato de la API del microservicio de recursos del SGA
+    (Sistema de Gestion Academica). Gestiona el ciclo de vida de
+    las matriculas: listado, creacion, edicion y eliminacion.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8002
+    description: Acceso directo al microservicio
+  - url: http://localhost:8080/api/resources
+    description: Acceso a traves del API Gateway (Nginx)
+
+tags:
+  - name: Matriculas
+    description: Operaciones CRUD sobre matriculas de estudiantes
+
+paths:
+  /resources/matriculas:
+    get:
+      tags: [Matriculas]
+      summary: Listar todas las matriculas
+      operationId: listarMatriculas
+      responses:
+        "200":
+          description: Listado de matriculas obtenido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeMatriculaList"
+    post:
+      tags: [Matriculas]
+      summary: Crear una nueva matricula
+      operationId: crearMatricula
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatriculaInput"
+      responses:
+        "200":
+          description: Matricula registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeMatricula"
+
+  /resources/matriculas/{id_matricula}:
+    put:
+      tags: [Matriculas]
+      summary: Editar una matricula existente
+      operationId: editarMatricula
+      parameters:
+        - name: id_matricula
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatriculaUpdate"
+      responses:
+        "200":
+          description: Matricula actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeMatricula"
+        "404":
+          description: Matricula no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Matriculas]
+      summary: Eliminar una matricula
+      operationId: eliminarMatricula
+      parameters:
+        - name: id_matricula
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Matricula eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeMatriculaEliminada"
+        "404":
+          description: Matricula no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /health:
+    get:
+      tags: [Matriculas]
+      summary: Verificar el estado del servicio
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeHealth"
+
+components:
+  schemas:
+    Matricula:
+      type: object
+      properties:
+        id_matricula:
+          type: integer
+          example: 1
+        estudiante:
+          type: string
+          example: Juan Perez
+        grado:
+          type: string
+          example: 7mo EGB
+        ano_lectivo:
+          type: string
+          example: "2025-2026"
+        estado:
+          type: string
+          enum: [ACTIVO, RETIRADO, FINALIZADO]
+          example: ACTIVO
+        observaciones:
+          type: string
+          nullable: true
+          example: null
+        fecha_registro:
+          type: string
+          format: date
+          example: "2026-06-18"
+
+    MatriculaInput:
+      type: object
+      required: [estudiante, grado, ano_lectivo]
+      properties:
+        estudiante:
+          type: string
+          example: Juan Perez
+        grado:
+          type: string
+          example: 7mo EGB
+        ano_lectivo:
+          type: string
+          example: "2025-2026"
+        estado:
+          type: string
+          enum: [ACTIVO, RETIRADO, FINALIZADO]
+          default: ACTIVO
+        observaciones:
+          type: string
+          nullable: true
+
+    MatriculaUpdate:
+      type: object
+      description: Todos los campos son opcionales; solo se actualizan los enviados.
+      properties:
+        estudiante:
+          type: string
+        grado:
+          type: string
+        ano_lectivo:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, RETIRADO, FINALIZADO]
+        observaciones:
+          type: string
+          nullable: true
+
+    EnvelopeMatricula:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/Matricula"
+        message:
+          type: string
+          example: Matricula registrada
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeMatriculaList:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Matricula"
+        message:
+          type: string
+          example: Matriculas obtenidas
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeMatriculaEliminada:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            id_matricula:
+              type: integer
+              example: 1
+        message:
+          type: string
+          example: Matricula eliminada
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            service:
+              type: string
+              example: resource-service
+            status:
+              type: string
+              example: UP
+        message:
+          type: string
+          example: OK
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: Matricula no encontrada

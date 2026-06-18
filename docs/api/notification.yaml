@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: >
+    Contrato de la API del microservicio de notificaciones del SGA
+    (Sistema de Gestion Academica). Registra y consulta eventos
+    de notificacion generados por los demas servicios.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8003
+    description: Acceso directo al microservicio
+  - url: http://localhost:8080/api/notifications
+    description: Acceso a traves del API Gateway (Nginx)
+
+tags:
+  - name: Notifications
+    description: Operaciones de registro y consulta de notificaciones
+
+paths:
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Listar todas las notificaciones
+      operationId: listarNotificaciones
+      responses:
+        "200":
+          description: Listado de notificaciones obtenido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeNotificacionList"
+    post:
+      tags: [Notifications]
+      summary: Registrar una nueva notificacion
+      operationId: crearNotificacion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificacionInput"
+      responses:
+        "200":
+          description: Notificacion registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeNotificacion"
+
+  /health:
+    get:
+      tags: [Notifications]
+      summary: Verificar el estado del servicio
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeHealth"
+
+components:
+  schemas:
+    Notificacion:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        evento:
+          type: string
+          example: MATRICULA_CREADA
+        recurso_id:
+          type: integer
+          nullable: true
+          example: 5
+        detalle:
+          type: string
+          nullable: true
+          example: Matricula registrada para el estudiante Juan Perez
+        created_at:
+          type: string
+          format: date-time
+
+    NotificacionInput:
+      type: object
+      required: [evento]
+      properties:
+        evento:
+          type: string
+          example: MATRICULA_CREADA
+        recurso_id:
+          type: integer
+          nullable: true
+          example: 5
+        detalle:
+          type: string
+          nullable: true
+          example: Matricula registrada para el estudiante Juan Perez
+
+    EnvelopeNotificacion:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/Notificacion"
+        message:
+          type: string
+          example: Notificacion registrada
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeNotificacionList:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notificacion"
+        message:
+          type: string
+          example: Notificaciones obtenidas
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            service:
+              type: string
+              example: notification-service
+            status:
+              type: string
+              example: UP
+        message:
+          type: string
+          example: OK
+        timestamp:
+          type: string
+          format: date-time

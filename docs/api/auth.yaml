@@ -1,0 +1,213 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  description: >
+    Contrato de la API del microservicio de autenticacion del SGA
+    (Sistema de Gestion Academica). Gestiona el registro de usuarios,
+    el inicio de sesion mediante JWT y la validacion de tokens.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8001
+    description: Acceso directo al microservicio
+  - url: http://localhost:8080/api/auth
+    description: Acceso a traves del API Gateway (Nginx)
+
+tags:
+  - name: Auth
+    description: Operaciones de registro, login y validacion de tokens
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar un nuevo usuario
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeUser"
+        "409":
+          description: El usuario ya existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesion y obtener un token JWT
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Login correcto, token emitido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeToken"
+        "401":
+          description: Credenciales invalidas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/validate:
+    get:
+      tags: [Auth]
+      summary: Validar un token JWT
+      operationId: validateToken
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: Token en formato "Bearer {token}"
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIs..."
+      responses:
+        "200":
+          description: Token valido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeValidate"
+        "401":
+          description: Token invalido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /health:
+    get:
+      tags: [Auth]
+      summary: Verificar el estado del servicio
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeHealth"
+
+components:
+  schemas:
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: jperez
+        password:
+          type: string
+          format: password
+          example: "Clave123*"
+
+    EnvelopeUser:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            username:
+              type: string
+              example: jperez
+        message:
+          type: string
+          example: Usuario registrado
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeToken:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            token_type:
+              type: string
+              example: bearer
+            expires_in:
+              type: integer
+              example: 3600
+        message:
+          type: string
+          example: Login correcto
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeValidate:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            username:
+              type: string
+              example: jperez
+        message:
+          type: string
+          example: Token valido
+        timestamp:
+          type: string
+          format: date-time
+
+    EnvelopeHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            service:
+              type: string
+              example: auth-service
+            status:
+              type: string
+              example: UP
+        message:
+          type: string
+          example: OK
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: Credenciales invalidas
