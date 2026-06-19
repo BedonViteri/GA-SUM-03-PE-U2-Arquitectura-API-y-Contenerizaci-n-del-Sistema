@@ -1,6 +1,5 @@
 services:
 
-
   auth-db:
     image: postgres:16
     environment:
@@ -11,6 +10,11 @@ services:
       - auth-db-data:/var/lib/postgresql/data
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   resource-db:
     image: postgres:16
@@ -22,6 +26,11 @@ services:
       - resource-db-data:/var/lib/postgresql/data
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resource_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   notification-db:
     image: postgres:16
@@ -33,8 +42,13 @@ services:
       - notification-db-data:/var/lib/postgresql/data
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sga_user -d notifications_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
- 
+
   auth-service:
     build: ./auth-service
     environment:
@@ -42,9 +56,22 @@ services:
       - JWT_EXP_MIN=${JWT_EXP_MIN}
       - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/auth_db
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
     networks:
       - backend
+    restart: on-failure
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      - DATABASE_URL=postgresql://sga_user:sga_pass@notification-db:5432/notifications_db
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: on-failure
 
   resource-service:
     build: ./resource-service
@@ -53,20 +80,13 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@resource-db:5432/resource_db
       - NOTIFICATION_URL=http://notification-service:8003
     depends_on:
-      - resource-db
-      - notification-service
+      resource-db:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
     networks:
       - backend
-
-  notification-service:
-    build: ./notification-service
-    environment:
-      - DATABASE_URL=postgresql://sga_user:sga_pass@notification-db:5432/notifications_db
-    depends_on:
-      - notification-db
-    networks:
-      - backend
-
+    restart: on-failure
   
   api-gateway:
     image: nginx:alpine
@@ -82,6 +102,7 @@ services:
     networks:
       - backend
 
+  
   portainer:
     image: portainer/portainer-ce:latest
     ports:
@@ -91,6 +112,7 @@ services:
       - portainer-data:/data
     networks:
       - backend
+
 
 networks:
   backend:
