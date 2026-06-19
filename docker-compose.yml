@@ -1,0 +1,104 @@
+services:
+
+
+  auth-db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth_db
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  resource-db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=resource_db
+    volumes:
+      - resource-db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  notification-db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=sga_user
+      - POSTGRES_PASSWORD=sga_pass
+      - POSTGRES_DB=notifications_db
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+ 
+  auth-service:
+    build: ./auth-service
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXP_MIN=${JWT_EXP_MIN}
+      - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/auth_db
+    depends_on:
+      - auth-db
+    networks:
+      - backend
+
+  resource-service:
+    build: ./resource-service
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql://postgres:postgres@resource-db:5432/resource_db
+      - NOTIFICATION_URL=http://notification-service:8003
+    depends_on:
+      - resource-db
+      - notification-service
+    networks:
+      - backend
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      - DATABASE_URL=postgresql://sga_user:sga_pass@notification-db:5432/notifications_db
+    depends_on:
+      - notification-db
+    networks:
+      - backend
+
+  
+  api-gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - gateway-logs:/var/log/nginx
+    depends_on:
+      - auth-service
+      - resource-service
+      - notification-service
+    networks:
+      - backend
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  resource-db-data:
+  notification-db-data:
+  gateway-logs:
+  portainer-data:
