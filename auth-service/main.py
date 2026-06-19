@@ -9,9 +9,9 @@ from jose import jwt, JWTError
 SECRET = os.getenv("JWT_SECRET", "change-me")
 ALGO = "HS256"
 EXP_MIN = int(os.getenv("JWT_EXP_MIN", "60"))
-DB_URL = os.getenv("DATABASE_URL", "sqlite:///./users.db")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@auth-db:5432/auth_db")
 
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DB_URL)
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
