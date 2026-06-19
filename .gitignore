@@ -31,3 +31,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Variables de entorno reales (nunca subir)
+.env
+
+# Bases de datos
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+
+# Logs
+*.log
